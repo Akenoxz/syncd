@@ -1,0 +1,24 @@
+[package]
+name = "syncd"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "server"
+path = "src/server.rs"
+
+[[bin]]
+name = "client"
+path = "src/client.rs"
+
+[dependencies]
+tonic = "0.14"
+tonic-prost = "0.14"
+prost = "0.14"
+tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.9", features = ["sqlite", "runtime-tokio", "macros"] }
+uuid = { version = "1", features = ["v4"] }
+anyhow = "1"
+
+[build-dependencies]
+tonic-prost-build = "0.14"
