@@ -4,6 +4,7 @@ pub mod sync {
 
 mod db;
 
+use std::time::{SystemTime, UNIX_EPOCH};
 use sync::sync_service_server::{SyncService, SyncServiceServer};
 use sync::{
     AddItemRequest, CompleteItemRequest, DeleteItemRequest, DeleteItemResponse, Item,
@@ -16,6 +17,14 @@ pub struct MyService {
     pool: sqlx::SqlitePool,
 }
 
+//gives current time
+fn now_unix() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64
+}
+
 #[tonic::async_trait]
 impl SyncService for MyService {
     async fn add_item(&self, req: Request<AddItemRequest>) -> Result<Response<Item>, Status> {
@@ -25,7 +34,7 @@ impl SyncService for MyService {
             id: uuid::Uuid::new_v4().to_string(),
             title,
             done: false,
-            created_at: 0,
+            created_at: now_unix(),
         };
 
         db::insert_item(
@@ -51,11 +60,11 @@ impl SyncService for MyService {
 
         let items = rows
             .into_iter()
-            .map(|(id, title, done)| Item {
+            .map(|(id, title, done, created_at)| Item {
                 id,
                 title,
                 done,
-                created_at: 0,
+                created_at,
             })
             .collect();
 
@@ -67,6 +76,10 @@ impl SyncService for MyService {
         req: Request<CompleteItemRequest>,
     ) -> Result<Response<Item>, Status> {
         let id = req.into_inner().id;
+
+        db::complete_item(&self.pool, &id)
+            .await
+            .map_err(|error| Status::internal(error.to_string()))?;
 
         let item = Item {
             id,
@@ -80,9 +93,15 @@ impl SyncService for MyService {
 
     async fn delete_item(
         &self,
-        _req: Request<DeleteItemRequest>,
+        req: Request<DeleteItemRequest>,
     ) -> Result<Response<DeleteItemResponse>, Status> {
-        Ok(Response::new(DeleteItemResponse { success: true }))
+        let id = req.into_inner().id;
+
+        let success = db::delete_item(&self.pool, &id)
+            .await
+            .map_err(|error| Status::internal(error.to_string()))?;
+
+        Ok(Response::new(DeleteItemResponse { success }))
     }
 }
 

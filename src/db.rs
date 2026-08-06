@@ -15,9 +15,9 @@ pub async fn init_table(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     Ok(())
 }
 //get fn
-pub async fn get_items(pool: &SqlitePool) -> Result<Vec<(String, String, bool)>, sqlx::Error> {
-    let rows = sqlx::query_as::<_, (String, String, bool)>(
-        "SELECT id, title, done FROM items ORDER BY created_at DESC",
+pub async fn get_items(pool: &SqlitePool) -> Result<Vec<(String, String, bool, i64)>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, (String, String, bool, i64)>(
+        "SELECT id, title, done, created_at FROM items ORDER BY created_at DESC",
     )
     .fetch_all(pool)
     .await?;
@@ -45,4 +45,22 @@ pub async fn insert_item(
     .await?;
 
     Ok(())
+}
+
+pub async fn complete_item(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE items SET done = 1 WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
+
+pub async fn delete_item(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("DELETE FROM items WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+    Ok(result.rows_affected() > 0)
 }
