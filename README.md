@@ -48,4 +48,5 @@ The service currently provides these RPC methods:
 
 ## Project status
 
-Adding and listing items currently work. Database support for completing and deleting items is still in progress.
+Adding and listing items currently work. Database support for completing and deleting items is still in progress. 
+Web ui coming soon
